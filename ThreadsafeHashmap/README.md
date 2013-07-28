@@ -1,0 +1,1 @@
+Basic thread-safe implementation of a hash-map using a mutex lock
