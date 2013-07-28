@@ -34,7 +34,7 @@ template<typename Keys, typename Vals> class HashMap {
   bool set(Keys const & k, Vals const &v);           // Update value (fails if key is not yet present)
   Vals get(Keys const & k);                          // Return value (fails if key is not present)
   bool del(Keys const & k);                          // Remove key/value (fails if key is not present)
-  int  hash(Keys const & k) {return int(k) % mod; }; // Dummy hashing function
+  int  hash(Keys const & k) {return int(k) % mod; }; // Dummy hashing function assuming key can be cast to an integer
   std::list<Keys> keys();                            // Return a list of stored keys
   std::string print();                               // Write a string representation of the key/value pairs
 

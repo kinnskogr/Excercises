@@ -36,7 +36,7 @@ main()
   printf("Thread 1 returns: %d\n",iret1);
   printf("Thread 2 returns: %d\n",iret2);
 
-  printf("new Keys:\n  %s\n", local_hashmap.print().c_str());
+  printf("New Keys:\n  %s\n", local_hashmap.print().c_str());
   exit(0);
   }
 
