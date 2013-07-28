@@ -1,7 +1,7 @@
 Basic thread-safe implementation of a hash-map using a mutex lock
 
 * g++ -pthread -o example example.cxx
-* ./example
+* ./example <br>
 Original Keys: <br>
   (1,1), (3,1), (9,1),  <br>
 Thread 1 returns: 0 <br>
