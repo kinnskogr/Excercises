@@ -6,6 +6,11 @@
 #include <string>
 #include <sstream>
 
+/*************************************************************
+  Implement a HashMap base class, write safe HashMapWSafe, and
+  read-write safe HashMapRWSafe.
+**************************************************************/
+
 //----------------------------------------------------
 // Pair-like container for keys and values
 //----------------------------------------------------
@@ -38,6 +43,8 @@ template<typename Keys, typename Vals> class HashMap {
 
  protected:
   const int mod;
+
+ private:
   std::vector< std::list<Mapped<Keys, Vals> > > map;
   
 };
@@ -112,33 +119,89 @@ template<typename Keys, typename Vals> std::string HashMap<Keys, Vals>::print() 
 //----------------------------------------------------
 template<typename Keys, typename Vals> class HashMapWSafe : public HashMap<Keys, Vals> {
  public:
-  HashMapWSafe(int m = 100) : HashMap<Keys,Vals>::HashMap(m), rw_mutex(PTHREAD_MUTEX_INITIALIZER) { };
+  HashMapWSafe(int m = 100) : HashMap<Keys,Vals>::HashMap(m), w_mutex(PTHREAD_MUTEX_INITIALIZER) { };
   bool put(Keys const & k, Vals const &v);           // Insert key/values (fails if key is already present)
   bool set(Keys const & k, Vals const &v);           // Update value (fails if key is not yet present)
   bool del(Keys const & k);                          // Remove key/value (fails if key is not present)
 
  private:
-  pthread_mutex_t rw_mutex;
+  pthread_mutex_t w_mutex;
 
 };
 
 template<typename Keys, typename Vals> bool HashMapWSafe<Keys, Vals>::put(Keys const & k, Vals const & v)  {
-  pthread_mutex_lock(&rw_mutex);
+  pthread_mutex_lock(&w_mutex);
   bool output = HashMap<Keys,Vals>::put(k, v);
-  pthread_mutex_unlock(&rw_mutex);
+  pthread_mutex_unlock(&w_mutex);
   return output;
 }
 
 template<typename Keys, typename Vals> bool HashMapWSafe<Keys, Vals>::set(Keys const & k, Vals const & v)  {
-  pthread_mutex_lock(&rw_mutex);
+  pthread_mutex_lock(&w_mutex);
   bool output = HashMap<Keys,Vals>::set(k, v);
-  pthread_mutex_unlock(&rw_mutex);
+  pthread_mutex_unlock(&w_mutex);
   return output;
 }
 
 template<typename Keys, typename Vals> bool HashMapWSafe<Keys, Vals>::del(Keys const & k)  {
-  pthread_mutex_lock(&rw_mutex);
+  pthread_mutex_lock(&w_mutex);
   bool output = HashMap<Keys,Vals>::del(k);
-  pthread_mutex_unlock(&rw_mutex);
+  pthread_mutex_unlock(&w_mutex);
+  return output;
+}
+
+//----------------------------------------------------
+// Previous class can still run into problems if the 
+// lists were to change while a read process was 
+// iterating over them. Add additional multi-read mutex.
+//----------------------------------------------------
+
+template<typename Keys, typename Vals> class HashMapRWSafe : public HashMap<Keys, Vals> {
+ public:
+  //HashMapRWSafe(int m = 100) : HashMap<Keys,Vals>::HashMap(m), rw_lock(PTHREAD_RWLOCK_INITIALIZER) { };
+ HashMapRWSafe(int m = 100) : HashMap<Keys,Vals>::HashMap(m), rw_lock(PTHREAD_RWLOCK_INITIALIZER) { };
+  bool put(Keys const & k, Vals const &v);           // Insert key/values (fails if key is already present)
+  bool set(Keys const & k, Vals const &v);           // Update value (fails if key is not yet present)
+  Vals get(Keys const & k);                          // Return value (fails if key is not present)
+  bool del(Keys const & k);                          // Remove key/value (fails if key is not present)
+  std::list<Keys> keys();                            // Return a list of stored keys
+
+ private:
+  pthread_rwlock_t rw_lock;
+
+};
+
+template<typename Keys, typename Vals> bool HashMapRWSafe<Keys, Vals>::put(Keys const & k, Vals const & v)  {
+  pthread_rwlock_wrlock(&rw_lock);
+  bool output = HashMap<Keys,Vals>::put(k, v);
+  pthread_rwlock_unlock(&rw_lock);
+  return output;
+}
+
+template<typename Keys, typename Vals> bool HashMapRWSafe<Keys, Vals>::set(Keys const & k, Vals const & v)  {
+  pthread_rwlock_wrlock(&rw_lock);
+  bool output = HashMap<Keys,Vals>::set(k, v);
+  pthread_rwlock_unlock(&rw_lock);
+  return output;
+}
+
+template<typename Keys, typename Vals> Vals HashMapRWSafe<Keys, Vals>::get(Keys const & k)  {
+  pthread_rwlock_rdlock(&rw_lock);
+  Vals output = HashMap<Keys,Vals>::get(k);
+  pthread_rwlock_unlock(&rw_lock);
+  return output;
+}
+
+template<typename Keys, typename Vals> bool HashMapRWSafe<Keys, Vals>::del(Keys const & k)  {
+  pthread_rwlock_wrlock(&rw_lock);
+  bool output = HashMap<Keys,Vals>::del(k);
+  pthread_rwlock_unlock(&rw_lock);
+  return output;
+}
+
+template<typename Keys, typename Vals> std::list<Keys> HashMapRWSafe<Keys, Vals>::keys()  {
+  pthread_rwlock_rdlock(&rw_lock);
+  std::list<Keys> output = HashMap<Keys, Vals>::keys();
+  pthread_rwlock_unlock(&rw_lock);
   return output;
 }
